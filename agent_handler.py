@@ -21,7 +21,6 @@ class AgentHandler:
                 description="Use this tool to generate PHP code for WordPress tasks based on user prompt."
             )
         ]
-
         return initialize_agent(
             tools=tools,
             llm=self.llm,

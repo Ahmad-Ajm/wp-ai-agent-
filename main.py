@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from agent_handler import AgentHandler
 
-# إعداد التسجيل
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -13,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# إعداد CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,23 +26,20 @@ def root():
 @app.post("/api")
 async def handle_request(request: Request, authorization: str = Header(None)):
     try:
-        if not authorization or not authorization.startswith("Bearer "):
-            logger.warning("Authorization header missing or invalid")
-            raise HTTPException(
-                status_code=401,
-                detail="Missing or invalid API key. Provide Bearer token."
-            )
-
-        api_key = authorization.split(" ")[1]
         data = await request.json()
         prompt = data.get("prompt", "")
         action = data.get("action", "generate_php")
+        api_key = data.get("api_key") or (authorization.split(" ")[1] if authorization and authorization.startswith("Bearer ") else None)
+
+        if not api_key:
+            logger.warning("API key not provided")
+            raise HTTPException(status_code=401, detail="Missing OpenAI API key")
 
         if not prompt:
-            logger.warning("Prompt is empty")
-            raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+            logger.warning("Empty prompt received")
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-        logger.info(f"Received action={action} with prompt length={len(prompt)}")
+        logger.info(f"Processing request: action={action}, prompt_length={len(prompt)}")
 
         agent = AgentHandler(api_key)
         result = agent.process_request(prompt, action)
@@ -58,8 +53,8 @@ async def handle_request(request: Request, authorization: str = Header(None)):
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Unexpected error. Please try again."
-        )
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JSONResponse({
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
