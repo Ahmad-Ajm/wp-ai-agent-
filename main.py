@@ -1,49 +1,65 @@
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
-import openai
-from openai import OpenAI
-import os
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+from agent_handler import AgentHandler
+
+# إعداد التسجيل
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# إعداد CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def root():
-    return {"message": "✅ WP AI Agent with GPT (v1) is running!"}
+    return {"message": "✅ WP AI Agent with LangChain is running!"}
 
 @app.post("/api")
 async def handle_request(request: Request, authorization: str = Header(None)):
-    data = await request.json()
-    prompt = data.get("prompt", "")
-    action = data.get("action", "generate_php")
-
-    if not authorization or not authorization.startswith("Bearer "):
-        return JSONResponse({"status": "error", "message": "Missing or invalid API key"}, status_code=401)
-
-    api_key = authorization.split(" ")[1]
-    client = OpenAI(api_key=api_key)
-
-    system_prompt = (
-        "أنت مساعد ذكي لووردبريس. عندما يُطلب منك إنشاء صفحة أو كود PHP، قم بإنتاج كود نظيف وآمن "
-        "متوافق مع معايير ووردبريس. لا تشرح، فقط أعد الكود المطلوب."
-    )
-
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-        )
-        gpt_output = response.choices[0].message.content
+        if not authorization or not authorization.startswith("Bearer "):
+            logger.warning("Authorization header missing or invalid")
+            raise HTTPException(
+                status_code=401,
+                detail="Missing or invalid API key. Provide Bearer token."
+            )
+
+        api_key = authorization.split(" ")[1]
+        data = await request.json()
+        prompt = data.get("prompt", "")
+        action = data.get("action", "generate_php")
+
+        if not prompt:
+            logger.warning("Prompt is empty")
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+
+        logger.info(f"Received action={action} with prompt length={len(prompt)}")
+
+        agent = AgentHandler(api_key)
+        result = agent.process_request(prompt, action)
+
         return JSONResponse({
             "status": "success",
-            "generated_php": gpt_output
+            "action": action,
+            "result": result
         })
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        return JSONResponse({
-            "status": "error",
-            "message": str(e)
-        }, status_code=500)
+        logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Unexpected error. Please try again."
+        )
