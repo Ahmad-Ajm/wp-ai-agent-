@@ -30,7 +30,12 @@ async def handle_request(request: Request, authorization: str = Header(None)):
         data = await request.json()
         prompt = data.get("prompt", "")
         action = data.get("action", "generate_php")
-        api_key = data.get("api_key") or (authorization.split(" ")[1] if authorization and authorization.startswith("Bearer ") else None)
+        api_key = data.get("api_key") or (
+            authorization.split(" ")[1] if authorization and authorization.startswith("Bearer ") else None
+        )
+
+        print("=== API KEY RECEIVED ===")
+        print(api_key)
 
         if not api_key:
             logger.warning("API key not provided")
