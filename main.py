@@ -43,7 +43,7 @@ async def handle_request(request: Request, authorization: str = Header(None)):
         except Exception as e:
             logger.error(f"API key decoding failed: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid API key format")
-	    logger.info(f"Decoded API Key: {api_key}")
+	    
         if not prompt:
             logger.warning("Empty prompt received")
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
