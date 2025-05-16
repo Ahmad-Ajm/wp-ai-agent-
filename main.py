@@ -1,4 +1,3 @@
-import base64
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,29 +30,17 @@ async def handle_request(request: Request, authorization: str = Header(None)):
         data = await request.json()
         prompt = data.get("prompt", "")
         action = data.get("action", "generate_php")
-        api_key_encoded = data.get("api_key") or (
-            authorization.split(" ")[1]
-            if authorization and authorization.startswith("Bearer ")
-            else None
-        )
+        api_key = data.get("api_key") or (authorization.split(" ")[1] if authorization and authorization.startswith("Bearer ") else None)
 
-        if not api_key_encoded:
+        if not api_key:
             logger.warning("API key not provided")
             raise HTTPException(status_code=401, detail="Missing OpenAI API key")
-
-        # 🔹 فك تشفير المفتاح
-        try:
-            api_key = base64.b64decode(api_key_encoded).decode("utf-8")
-        except Exception as e:
-            logger.error(f"API key decoding failed: {str(e)}")
-            raise HTTPException(status_code=400, detail="Invalid API key format")
 
         if not prompt:
             logger.warning("Empty prompt received")
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
         logger.info(f"Processing request: action={action}, prompt_length={len(prompt)}")
-        logger.info(f"Decoded API Key: {api_key}")
 
         agent = AgentHandler(api_key)
         result = agent.process_request(prompt, action)
