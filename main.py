@@ -31,7 +31,11 @@ async def handle_request(request: Request, authorization: str = Header(None)):
         data = await request.json()
         prompt = data.get("prompt", "")
         action = data.get("action", "generate_php")
-        api_key_encoded = data.get("api_key") or (authorization.split(" ")[1] if authorization and authorization.startswith("Bearer ") else None)
+        api_key_encoded = data.get("api_key") or (
+            authorization.split(" ")[1]
+            if authorization and authorization.startswith("Bearer ")
+            else None
+        )
 
         if not api_key_encoded:
             logger.warning("API key not provided")
@@ -43,12 +47,13 @@ async def handle_request(request: Request, authorization: str = Header(None)):
         except Exception as e:
             logger.error(f"API key decoding failed: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid API key format")
-	    
+
         if not prompt:
             logger.warning("Empty prompt received")
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
         logger.info(f"Processing request: action={action}, prompt_length={len(prompt)}")
+        logger.info(f"Decoded API Key: {api_key}")
 
         agent = AgentHandler(api_key)
         result = agent.process_request(prompt, action)
