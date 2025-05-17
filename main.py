@@ -37,16 +37,13 @@ async def predict(request: Request, authorization: str = Header(None)):
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
         openai.api_key = api_key
-        
-        # استخدام الواجهة الجديدة
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
-            prompt=prompt,
-            temperature=0.7,
-            max_tokens=150
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
         )
 
-        result = response.choices[0].text.strip()
+        result = response['choices'][0]['message']['content']
 
         return JSONResponse({
             "status": "success",
