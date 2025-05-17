@@ -1,6 +1,9 @@
 import os
 import logging
 from langchain.chat_models import ChatOpenAI
+from langchain.agents import initialize_agent, Tool
+from langchain.agents.agent_types import AgentType
+from langchain.memory import ConversationBufferMemory
 
 class AgentHandler:
     def __init__(self, api_key: str):
@@ -16,35 +19,34 @@ class AgentHandler:
             self.base_prompt = ""
 
         self.llm = ChatOpenAI(model_name="gpt-4o", openai_api_key=self.api_key)
+        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.agent = self._initialize_agent()
+
+    def _initialize_agent(self):
+        tools = [
+            Tool(
+                name="generate_php",
+                func=self._generate_code,
+                description="يولّد شيفرة PHP بناءً على الوصف"
+            ),
+        ]
+        return initialize_agent(
+            tools,
+            self.llm,
+            agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+            memory=self.memory,
+            verbose=True
+        )
+
+    def _generate_code(self, prompt: str) -> str:
+        return self.llm.predict(prompt)
 
     def process_request(self, prompt: str, action: str = "generate_php") -> str:
         try:
-            self.logger.info(f"تنفيذ عبر predict() | الإجراء: {action}")
-
-            # بناء البرومبت الكامل مع تنبيه للبنية الصارمة
-            full_prompt = (
-                self.base_prompt
-                + "\n\n"
-                + "تنبيه: يجب أن يكون الرد باستخدام أحد الهيكلين فقط:\n"
-                + "- #QUESTION\n"
-                + "- أو #CONFIRM + #CODE\n\n"
-                + "أي رد خارج هذا الشكل سيُعتبر غير صالح.\n\n"
-                + "طلب المستخدم:\n"
-                + prompt
-            )
-
-            # إرسال إلى النموذج
-            result = self.llm.predict(full_prompt)
-
-            # طباعة الرد الخام من النموذج
-            print("AI raw output:\n", result)
-
-            # تحذير إذا لم يكن فيه هيكل متوقع
-            if all(x not in result for x in ["#CONFIRM", "#QUESTION", "#CODE"]):
-                self.logger.warning("⚠️ No structured response found.")
-
+            self.logger.info(f"تشغيل وكيل LangChain مع الإجراء: {action}")
+            full_prompt = f"{self.base_prompt}\n{prompt}" if self.base_prompt else prompt
+            result = self.agent.run(full_prompt)
             return result
-
         except Exception as e:
-            self.logger.error(f"فشل في تنفيذ النموذج: {e}")
-            raise ValueError(f"خطأ في تنفيذ النموذج: {e}")
+            self.logger.error(f"فشل وكيل LangChain: {e}")
+            raise ValueError(f"خطأ في تنفيذ الوكيل: {e}")
