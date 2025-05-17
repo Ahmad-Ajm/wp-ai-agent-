@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-wordpress-domain.com"],
+    allow_origins=["https://your-wordpress-domain.com"],  # قم بتعديله لنطاقك
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
