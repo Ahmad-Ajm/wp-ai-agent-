@@ -1,67 +1,31 @@
-from fastapi import FastAPI, Request, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-import logging
-from agent_handler import AgentHandler
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from pydantic import BaseModel
+from openai import OpenAI
+import os
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://your-wordpress-domain.com"],
-    allow_credentials=True,
-    allow_methods=["POST", "GET", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def root():
-    return {"message": "✅ WP AI Agent with LangChain is running!"}
+class ChatRequest(BaseModel):
+    prompt: str
 
 @app.post("/api")
-async def handle_request(
-    request: Request,
-    authorization: str = Header(None)
-):
+async def handle_request(req: ChatRequest):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API key not configured")
+
+    client = OpenAI(api_key=api_key)
+
     try:
-        data = await request.json()
-        prompt = data.get("prompt", "").strip()
-        action = data.get("action", "generate_php")
-
-        api_key = data.get("api_key")
-        if not api_key and authorization and authorization.startswith("Bearer "):
-            api_key = authorization.split(" ", 1)[1]
-
-        if not api_key:
-            logger.warning("API key not provided")
-            raise HTTPException(status_code=401, detail="Missing OpenAI API key")
-
-        if not prompt:
-            logger.warning("Empty prompt received")
-            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-
-        logger.info(f"Processing request: action={action}, prompt_length={len(prompt)}")
-
-        agent = AgentHandler(api_key)
-        result = agent.process_request(prompt, action)
-
-        return JSONResponse({
-            "status": "success",
-            "action": action,
-            "result": result
-        })
-
-    except HTTPException as he:
-        raise he
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": req.prompt}]
+        )
+        result = response.choices[0].message.content
+        return {"status": "success", "result": result}
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        return JSONResponse({
-            "status": "error",
-            "message": str(e)
-        }, status_code=500)
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
