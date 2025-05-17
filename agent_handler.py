@@ -20,9 +20,31 @@ class AgentHandler:
     def process_request(self, prompt: str, action: str = "generate_php") -> str:
         try:
             self.logger.info(f"تنفيذ عبر predict() | الإجراء: {action}")
-            full_prompt = f"{self.base_prompt}\n\nطلب المستخدم:\n{prompt}"
+
+            # بناء البرومبت الكامل مع تنبيه للبنية الصارمة
+            full_prompt = (
+                self.base_prompt
+                + "\n\n"
+                + "تنبيه: يجب أن يكون الرد باستخدام أحد الهيكلين فقط:\n"
+                + "- #QUESTION\n"
+                + "- أو #CONFIRM + #CODE\n\n"
+                + "أي رد خارج هذا الشكل سيُعتبر غير صالح.\n\n"
+                + "طلب المستخدم:\n"
+                + prompt
+            )
+
+            # إرسال إلى النموذج
             result = self.llm.predict(full_prompt)
+
+            # طباعة الرد الخام من النموذج
+            print("AI raw output:\n", result)
+
+            # تحذير إذا لم يكن فيه هيكل متوقع
+            if all(x not in result for x in ["#CONFIRM", "#QUESTION", "#CODE"]):
+                self.logger.warning("⚠️ No structured response found.")
+
             return result
+
         except Exception as e:
             self.logger.error(f"فشل في تنفيذ النموذج: {e}")
             raise ValueError(f"خطأ في تنفيذ النموذج: {e}")
