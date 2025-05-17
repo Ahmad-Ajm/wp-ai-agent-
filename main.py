@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import openai
+from openai import OpenAI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # عدل هذا لاحقًا إن أردت تخصيصه
+    allow_origins=["*"],  # عدّل حسب الحاجة
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
@@ -22,7 +22,7 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"message": "✅ WP AI Predict server is running."}
+    return {"message": "✅ WP AI Predict server (new OpenAI SDK) is running."}
 
 @app.post("/predict")
 async def predict(request: Request, authorization: str = Header(None)):
@@ -36,14 +36,14 @@ async def predict(request: Request, authorization: str = Header(None)):
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-        openai.api_key = api_key
-        response = openai.ChatCompletion.create(
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
 
-        result = response['choices'][0]['message']['content']
+        result = response.choices[0].message.content
 
         return JSONResponse({
             "status": "success",
