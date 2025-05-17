@@ -39,7 +39,7 @@ async def predict(request: Request, authorization: str = Header(None)):
         openai.api_key = api_key
         
         # استخدام الواجهة الجديدة
-        response = openai.chat_completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
