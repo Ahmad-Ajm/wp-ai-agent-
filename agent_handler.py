@@ -7,7 +7,6 @@ class AgentHandler:
         self.api_key = api_key
         self.logger = logging.getLogger(__name__)
 
-        # تحميل البرومبت من ملف خارجي
         prompt_path = os.path.join(os.path.dirname(__file__), "wp_prompt.txt")
         try:
             with open(prompt_path, "r", encoding="utf-8") as f:
@@ -16,15 +15,14 @@ class AgentHandler:
             self.logger.error(f"فشل في قراءة wp_prompt.txt: {e}")
             self.base_prompt = ""
 
-        # إعداد النموذج
         self.llm = ChatOpenAI(model_name="gpt-4o", openai_api_key=self.api_key)
 
     def process_request(self, prompt: str, action: str = "generate_php") -> str:
         try:
-            self.logger.info(f"معالجة طلب GPT، الإجراء: {action}")
+            self.logger.info(f"تنفيذ عبر predict() | الإجراء: {action}")
             full_prompt = f"{self.base_prompt}\n\nطلب المستخدم:\n{prompt}"
             result = self.llm.predict(full_prompt)
             return result
         except Exception as e:
-            self.logger.error(f"خطأ في تنفيذ الطلب: {e}")
-            raise ValueError(f"خطأ في تنفيذ الوكيل: {e}")
+            self.logger.error(f"فشل في تنفيذ النموذج: {e}")
+            raise ValueError(f"خطأ في تنفيذ النموذج: {e}")
