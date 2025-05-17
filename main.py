@@ -3,29 +3,18 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import openai
-from pathlib import Path
 
-# إعداد السجلات
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# تحميل تعليمات الذكاء الصناعي
-try:
-    WP_PROMPT_INSTRUCTIONS = Path("wp_prompt.txt").read_text(encoding="utf-8")
-except Exception as e:
-    logger.error("تعذر تحميل ملف wp_prompt.txt")
-    WP_PROMPT_INSTRUCTIONS = ""
-
-# إعداد تطبيق FastAPI
 app = FastAPI()
 
-# السماح بالوصول من جميع النطاقات (ينصح بتحديدها في بيئة الإنتاج)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # عدل هذا لاحقًا إن أردت تخصيصه
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
@@ -48,13 +37,11 @@ async def predict(request: Request, authorization: str = Header(None)):
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
         openai.api_key = api_key
-
-        response = openai.ChatCompletion.create(
+        
+        # استخدام الواجهة الجديدة
+        response = openai.chat_completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "system", "content": WP_PROMPT_INSTRUCTIONS},
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
 
