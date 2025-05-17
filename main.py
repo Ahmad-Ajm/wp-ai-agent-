@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import openai
+from openai import OpenAI  # التعديل الرئيسي هنا
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # عدل هذا لاحقًا إن أردت تخصيصه
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
@@ -31,19 +31,24 @@ async def predict(request: Request, authorization: str = Header(None)):
         prompt = data.get("prompt", "").strip()
         api_key = data.get("api_key") or (authorization or "").removeprefix("Bearer ").strip()
 
+        # التحقق من المفتاح والبرومبت
         if not api_key:
             raise HTTPException(status_code=401, detail="Missing API key")
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-        openai.api_key = api_key
-        response = openai.ChatCompletion.create(
+        # إنشاء عميل OpenAI بالإصدار الجديد
+        client = OpenAI(api_key=api_key)
+        
+        # إرسال الطلب باستخدام الواجهة الجديدة
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
 
-        result = response['choices'][0]['message']['content']
+        # استخراج النتيجة بالطريقة الجديدة
+        result = response.choices[0].message.content
 
         return JSONResponse({
             "status": "success",
