@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from openai import OpenAI
+from agent_handler import DirectOpenAIHandler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # عدل هذا لاحقًا إن أردت تخصيصه
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
@@ -25,25 +25,25 @@ def root():
     return {"message": "✅ WP AI Predict server is running."}
 
 @app.post("/predict")
-async def predict(request: Request, authorization: str = Header(None)):
+async def predict(
+    request: Request,
+    authorization: str = Header(None)
+):
     try:
         data = await request.json()
         prompt = data.get("prompt", "").strip()
-        api_key = data.get("api_key") or (authorization or "").removeprefix("Bearer ").strip()
+        api_key = (
+            data.get("api_key")
+            or (authorization or "").removeprefix("Bearer ").strip()
+        )
 
         if not api_key:
             raise HTTPException(status_code=401, detail="Missing API key")
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-        client = OpenAI(api_key=api_key)
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-
-        result = response.choices[0].message.content
+        handler = DirectOpenAIHandler(api_key)
+        result = handler.process_request(prompt)
 
         return JSONResponse({
             "status": "success",
@@ -51,10 +51,12 @@ async def predict(request: Request, authorization: str = Header(None)):
         })
 
     except HTTPException as he:
+        # يمرر HTTPException كما هي
         raise he
+
     except Exception as e:
         logger.error(f"Error during prediction: {e}", exc_info=True)
-        return JSONResponse({
-            "status": "error",
-            "message": str(e)
-        }, status_code=500)
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
