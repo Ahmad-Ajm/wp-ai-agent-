@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 from agent_handler import DirectOpenAIHandler
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +33,7 @@ async def predict(
     try:
         data = await request.json()
         prompt = data.get("prompt", "").strip()
+        session_id = data.get("session_id", "")
         api_key = (
             data.get("api_key")
             or (authorization or "").removeprefix("Bearer ").strip()
@@ -41,9 +43,11 @@ async def predict(
             raise HTTPException(status_code=401, detail="Missing API key")
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID required")
 
         handler = DirectOpenAIHandler(api_key)
-        result = handler.process_request(prompt)
+        result = handler.process_request(prompt, session_id)
 
         return JSONResponse({
             "status": "success",
@@ -51,7 +55,6 @@ async def predict(
         })
 
     except HTTPException as he:
-        # يمرر HTTPException كما هي
         raise he
 
     except Exception as e:
