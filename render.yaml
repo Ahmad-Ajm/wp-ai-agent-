@@ -1,13 +1,31 @@
+# render.yaml — تكوين خدمات Render للتطبيق wp-ai-agent
+
+# ملاحظات:
+# - نستخدم خطة مجانية للخدمة الرئيسية (web) على متجر Render.
+# - خدمة Redis لا تُتاح مجاناً، لذا نعطيها خطة starter مدفوعة قليلاً، مع ipAllowList فارغ
+#   ليسمح بالاتصال فقط من داخل نفس المشروع.
+# - autoDeploy: true لتفعيل النشر التلقائي عند الدفع إلى الفرع branch (main).
+# - healthCheckPath للتأكد من أن الحاوية صحيّة قبل فتحها للإنترنت.
+# - بناء وتشغيل بسيط يعتمد uvicorn (يمكن استبداله بـ gunicorn إذا رغبت).
+
 services:
   - type: web
     name: wp-ai-agent
-    runtime: python
+    env: python               # بيئة بايثون
+    plan: free                # خطة مجانية
+    branch: main              # الفرع الذي يُنشر منه تلقائياً
+    autoDeploy: true          # نشر أوتوماتيكي عند الدفع إلى Git
+    region: oregon            # يمكنك تغييره حسب موقعك
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health  # تأكد من وجود endpoint لتشييك الحالة في Flask/Starlette
     envVars:
       - key: REDIS_URL
         value: redis://ai-agent-redis:6379
 
   - type: redis
     name: ai-agent-redis
-    plan: starter  # تغيير من redis-premium إلى starter
+    plan: starter             # خطة Redis المبدئية
+    # ipAllowList مطلوبة لخدمات Redis/Key-Value في Render
+    # تركها فارغة [] يعني السماح بالاتصال فقط من داخل نفس المشروع
+    ipAllowList: []           # 
