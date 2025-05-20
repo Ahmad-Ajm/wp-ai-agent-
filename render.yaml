@@ -10,4 +10,4 @@ services:
 
   - type: redis
     name: ai-agent-redis
-    plan: redis-premium
+    plan: starter  # تغيير من redis-premium إلى starter
