@@ -25,7 +25,7 @@ services:
 
   - type: redis
     name: ai-agent-redis
-    plan: starter             # خطة Redis المبدئية
+    plan: free             # خطة Redis المبدئية
     # ipAllowList مطلوبة لخدمات Redis/Key-Value في Render
     # تركها فارغة [] يعني السماح بالاتصال فقط من داخل نفس المشروع
     ipAllowList: []           # 
