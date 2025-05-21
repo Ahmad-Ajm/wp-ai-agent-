@@ -26,12 +26,13 @@ def root():
     return {"message": "✅ WP AI Predict server is running."}
 
 @app.post("/predict")
-async def predict(
-    request: Request,
-    authorization: str = Header(None)
-):
+async def predict(request: Request, authorization: str = Header(None)):
     try:
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+
         prompt = data.get("prompt", "").strip()
         session_id = data.get("session_id", "")
         api_key = (
