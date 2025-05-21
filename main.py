@@ -25,6 +25,11 @@ app.add_middleware(
 def root():
     return {"message": "✅ WP AI Predict server is running."}
 
+# ✅ المسار المطلوب من Render
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.post("/predict")
 async def predict(request: Request, authorization: str = Header(None)):
     try:
