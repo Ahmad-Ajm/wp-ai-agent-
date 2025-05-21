@@ -56,7 +56,7 @@ class DirectOpenAIHandler:
             # إعداد الرسائل للذكاء الاصطناعي
             messages = [{"role": "system", "content": system_prompt}] + history[-6:]
             
-            self._add_log("بدء الاتصال بخدمة الذكاء الاصطناعي")
+            # طلب الرد من الذكاء الاصطناعي
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
