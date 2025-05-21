@@ -51,7 +51,8 @@ async def predict(
 
         return JSONResponse({
             "status": "success",
-            "result": result
+            "result": result["response"],
+            "log": result["log"]
         })
 
     except HTTPException as he:
@@ -60,6 +61,10 @@ async def predict(
     except Exception as e:
         logger.error(f"Error during prediction: {e}", exc_info=True)
         return JSONResponse(
-            {"status": "error", "message": str(e)},
+            {
+                "status": "error",
+                "message": str(e),
+                "log": "#Start-log\n1. فشل كلي في المعالجة\n#End-log"
+            },
             status_code=500
         )
