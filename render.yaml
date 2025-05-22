@@ -9,23 +9,21 @@
 # - بناء وتشغيل بسيط يعتمد uvicorn (يمكن استبداله بـ gunicorn إذا رغبت).
 
 services:
-  - type: web
-    name: wp-ai-agent
-    env: python               # بيئة بايثون
-    plan: free                # خطة مجانية
-    branch: main              # الفرع الذي يُنشر منه تلقائياً
-    autoDeploy: true          # نشر أوتوماتيكي عند الدفع إلى Git
-    region: oregon            # يمكنك تغييره حسب موقعك
+  - name: wp-ai-agent
+    type: web
+    env: python
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health  # تأكد من وجود endpoint لتشييك الحالة في Flask/Starlette
     envVars:
       - key: REDIS_URL
-        value: redis://red-d0mb46be5dus738c20kg:6379
+        value: redis://red-d0mb46be5dus738c20kg:6379  # ← استبدل هذا بالقيمة الحقيقية من لوحة تحكم Redis
+      - key: ENV
+        value: production
 
-  - type: redis
-    name: ai-agent-redis
-    plan: free             # خطة Redis المبدئية
-    # ipAllowList مطلوبة لخدمات Redis/Key-Value في Render
-    # تركها فارغة [] يعني السماح بالاتصال فقط من داخل نفس المشروع
-    ipAllowList: []           # 
+
+    #branch: main              # الفرع الذي يُنشر منه تلقائياً
+    #autoDeploy: true          # نشر أوتوماتيكي عند الدفع إلى Git
+   
+   # ipAllowList: []           # 
