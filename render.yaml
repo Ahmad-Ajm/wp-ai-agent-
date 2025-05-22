@@ -21,7 +21,7 @@ services:
     healthCheckPath: /health  # تأكد من وجود endpoint لتشييك الحالة في Flask/Starlette
     envVars:
       - key: REDIS_URL
-        value: redis://red-d0mb46be5dus738c20kg:6379
+        value: redis://ai-agent-redis:6379
 
   - type: redis
     name: ai-agent-redis

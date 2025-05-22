@@ -13,7 +13,7 @@ class DirectOpenAIHandler:
         
         # إعداد Redis
         self.redis = redis.Redis.from_url(
-            os.getenv('REDIS_URL', 'redis://red-d0mb46be5dus738c20kg:6379'),
+            os.getenv('REDIS_URL', 'redis://localhost:6379'),
             decode_responses=True,
             socket_timeout=5
         )
