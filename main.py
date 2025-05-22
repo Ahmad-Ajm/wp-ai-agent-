@@ -22,7 +22,7 @@ app.add_middleware(
 
 # الاتصال بـ Redis
 try:
-    redis_host = os.getenv('REDIS_HOST', 'ai-agent-redis')  # اسم الخدمة بدلاً من localhost
+    redis_host = os.getenv('REDIS_HOST', 'redis://red-d0mb46be5dus738c20kg')  # اسم الخدمة بدلاً من localhost
     redis_port = int(os.getenv('REDIS_PORT', 6379))
     r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
     r.ping()
