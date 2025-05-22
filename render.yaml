@@ -1,13 +1,20 @@
+# ✅ تعريف الخدمات المطلوبة على منصة Render
 services:
-  - name: wp-ai-agent
-    type: web
-    env: python
-    plan: free
-    region: oregon
+  - name: wp-ai-agent             # 🏷️ اسم الخدمة (يُستخدم في لوحة التحكم)
+    type: web                     # 🌐 نوع الخدمة: تطبيق ويب (يمكن الوصول له من الإنترنت)
+    env: python                   # 🐍 بيئة التشغيل: Python
+    plan: free                    # 💸 الخطة: مجانية
+    region: oregon               # 🌍 موقع الخادم (قابل للتغيير حسب الأقرب جغرافيًا)
+
+    # ⚙️ أمر البناء لتثبيت الاعتمادات من requirements.txt
     buildCommand: pip install -r requirements.txt
+
+    # ▶️ الأمر الذي يُشغّل التطبيق (FastAPI عبر Uvicorn)
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    # ✅ تعريف متغيرات البيئة
     envVars:
       - key: REDIS_URL
-        value: redis://red-xxxxxxx:6379  # ← غيّر هذا للقيمة من Render Redis
+        value: redis://red-xxxxxxx:6379  # 🟥 ملاحظة: يجب تعديل هذا إلى عنوان Redis الفعلي من لوحة Render
       - key: ENV
-        value: production
+        value: production                # 🟢 وضع التشغيل: Production
