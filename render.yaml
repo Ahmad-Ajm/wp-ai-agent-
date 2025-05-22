@@ -8,6 +8,6 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: REDIS_URL
-        value: redis://red-xxxxxxx:6379  # ← غيّر هذا للقيمة من Render Redis
+        value: redis://red-d0nh1euuk2gs73bvkle0:6379  # ← غيّر هذا للقيمة من Render Redis
       - key: ENV
         value: production
