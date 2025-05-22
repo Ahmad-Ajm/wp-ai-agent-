@@ -76,4 +76,4 @@ class DirectOpenAIHandler:
         
         except Exception as e:
             self.logger.error(f"خطأ في المعالجة: {e}", exc_info=True)
-            return "#ERROR\nفشل في المعالجة"
+            return f"#ERROR\nفشل في المعالجة: {e}"
