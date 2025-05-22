@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# ✅ إضافة Middleware لحل مشكلة CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # أو ضع رابط موقعك فقط لزيادة الأمان
     allow_credentials=True,
-    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -25,13 +26,18 @@ app.add_middleware(
 def root():
     return {"message": "✅ WP AI Predict server is running."}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.post("/predict")
-async def predict(
-    request: Request,
-    authorization: str = Header(None)
-):
+async def predict(request: Request, authorization: str = Header(None)):
     try:
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+
         prompt = data.get("prompt", "").strip()
         session_id = data.get("session_id", "")
         api_key = (
