@@ -1,10 +1,10 @@
-# ✅ الاستيرادات الأساسية من FastAPI
+# ✅ استيراد الأدوات الأساسية من FastAPI
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from agent_handler import DirectOpenAIHandler  # ✅ استيراد الكلاس الخاص بمعالجة الطلبات من الذكاء الصناعي
 import os
-from agent_handler import AIHandler
 
 # ✅ إعداد تسجيل السجلات (Logs)
 logging.basicConfig(
@@ -19,10 +19,10 @@ app = FastAPI()
 # ✅ إضافة Middleware لحل مشاكل CORS للسماح بالطلبات من مواقع مختلفة
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # يمكنك تحديد نطاق معين بدلاً من "*" لزيادة الأمان
+    allow_origins=["*"],  # ⚠️ يمكنك تحديد نطاق معين بدلاً من النجمة لزيادة الأمان
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # السماح بجميع أنواع الطلبات (GET, POST...)
+    allow_headers=["*"],  # السماح بجميع الرؤوس
 )
 
 # ✅ نقطة دخول أساسية لاختبار الخادم
@@ -30,7 +30,7 @@ app.add_middleware(
 def root():
     return {"message": "✅ WP AI Predict server is running."}
 
-# ✅ نقطة فحص الصحة
+# ✅ نقطة فحص الصحة (للتحقق من أن السيرفر يعمل)
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
@@ -45,10 +45,9 @@ async def predict(request: Request, authorization: str = Header(None)):
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON body")
 
-        # 📌 استخراج البيانات الأساسية
+        # 📌 استخراج البيانات الأساسية من الجسم
         prompt = data.get("prompt", "").strip()
-        session_id = data.get("session_id", "").strip()
-        provider = data.get("model", "gpt").strip().lower()
+        session_id = data.get("session_id", "")
         api_key = (
             data.get("api_key")
             or (authorization or "").removeprefix("Bearer ").strip()
@@ -62,8 +61,8 @@ async def predict(request: Request, authorization: str = Header(None)):
         if not session_id:
             raise HTTPException(status_code=400, detail="Session ID required")
 
-        # ▶️ إنشاء الكائن المناسب لمعالجة الطلب
-        handler = AIHandler(provider, api_key)
+        # ▶️ إنشاء كائن من المعالج لتمرير الطلب
+        handler = DirectOpenAIHandler(api_key)
         result = handler.process_request(prompt, session_id)
 
         # ✅ إعادة الرد على شكل JSON
@@ -74,6 +73,8 @@ async def predict(request: Request, authorization: str = Header(None)):
 
     except HTTPException as he:
         raise he
+
+    # ❌ في حال حصول خطأ غير متوقع
     except Exception as e:
         logger.error(f"Error during prediction: {e}", exc_info=True)
         return JSONResponse(
