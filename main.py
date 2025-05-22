@@ -1,70 +1,82 @@
+# ✅ الاستيرادات الأساسية من FastAPI
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import redis
 import os
+from agent_handler import AIHandler
 
-# إعداد التسجيل
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# ✅ إعداد تسجيل السجلات (Logs)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
+# ✅ إنشاء تطبيق FastAPI
 app = FastAPI()
 
-# إعداد CORS
+# ✅ إضافة Middleware لحل مشاكل CORS للسماح بالطلبات من مواقع مختلفة
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # يمكنك تحديد نطاق معين بدلاً من "*" لزيادة الأمان
     allow_credentials=True,
-    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# الاتصال بـ Redis
-try:
-    redis_host = os.getenv('REDIS_HOST', 'redis://red-d0mb46be5dus738c20kg')  # اسم الخدمة بدلاً من localhost
-    redis_port = int(os.getenv('REDIS_PORT', 6379))
-    r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
-    r.ping()
-    logger.info("✅ اتصال Redis ناجح")
-except redis.ConnectionError as e:
-    logger.error(f"❌ فشل الاتصال بـ Redis: {e}")
-    raise SystemExit("فشل الاتصال بـ Redis، يرجى التحقق من التكوين.")
-
+# ✅ نقطة دخول أساسية لاختبار الخادم
 @app.get("/")
 def root():
     return {"message": "✅ WP AI Predict server is running."}
 
+# ✅ نقطة فحص الصحة
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
+# ✅ نقطة POST الأساسية للتنبؤ باستخدام الذكاء الصناعي
 @app.post("/predict")
 async def predict(request: Request, authorization: str = Header(None)):
     try:
-        data = await request.json()
+        # 🧾 محاولة استخراج البيانات JSON من الجسم
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+        # 📌 استخراج البيانات الأساسية
         prompt = data.get("prompt", "").strip()
-        session_id = data.get("session_id", "")
-        api_key = data.get("api_key") or (authorization or "").removeprefix("Bearer ").strip()
-        model = data.get("model", "")
+        session_id = data.get("session_id", "").strip()
+        provider = data.get("model", "gpt").strip().lower()
+        api_key = (
+            data.get("api_key")
+            or (authorization or "").removeprefix("Bearer ").strip()
+        )
 
+        # ⚠️ التحقق من القيم المطلوبة
         if not api_key:
-            raise HTTPException(status_code=401, detail="مفتاح API مفقود")
+            raise HTTPException(status_code=401, detail="Missing API key")
         if not prompt:
-            raise HTTPException(status_code=400, detail="النص لا يمكن أن يكون فارغًا")
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
         if not session_id:
-            raise HTTPException(status_code=400, detail="معرف الجلسة مطلوب")
-        if not model:
-            raise HTTPException(status_code=400, detail="نموذج الذكاء الاصطناعي مطلوب")
+            raise HTTPException(status_code=400, detail="Session ID required")
 
-        # هنا يمكن إضافة منطق المعالجة باستخدام Redis
-        return JSONResponse({"status": "success", "result": "تمت المعالجة بنجاح"})
+        # ▶️ إنشاء الكائن المناسب لمعالجة الطلب
+        handler = AIHandler(provider, api_key)
+        result = handler.process_request(prompt, session_id)
+
+        # ✅ إعادة الرد على شكل JSON
+        return JSONResponse({
+            "status": "success",
+            "result": result
+        })
 
     except HTTPException as he:
         raise he
-    except redis.ConnectionError as e:
-        logger.error(f"خطأ في الاتصال بـ Redis: {e}")
-        return JSONResponse({"status": "error", "message": "فشل في الاتصال بـ Redis"}, status_code=500)
     except Exception as e:
-        logger.error(f"خطأ أثناء المعالجة: {e}")
-        return JSONResponse({"status": "error", "message": f"فشل في المعالجة: {str(e)}"}, status_code=500)
+        logger.error(f"Error during prediction: {e}", exc_info=True)
+        return JSONResponse(
+            {"status": "error", "message": str(e)},
+            status_code=500
+        )
